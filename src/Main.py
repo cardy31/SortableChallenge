@@ -1,166 +1,147 @@
 import json
 import re
+# TODO: Remove this before submission
+import sys
+
 
 from fuzzywuzzy import fuzz
 
 from src.Listing import Listing
 from src.Product import Product
+from src.Result import Result
 
 # The goal is to match as many listings to products as possible
 
 
 class Matcher:
     def __init__(self):
-        # Deal with sorting products by manufacturer
+        # Open a file to write results to
+        self.output_file = open('/Users/cardy/Programming/PycharmProjects/SortableChallenge2/json/results.txt', 'w')
+
+        # Read listings and products
         listings = self.get_listings()
         products = self.get_products()
 
-        # Create a list of all manufacturers
+        # Create a list of all product manufacturers
         self.manufacturers = []
 
         for product in products:
             if product.manufacturer not in self.manufacturers:
                 self.manufacturers.append(product.manufacturer)
 
-        # Sort products into a list for each manufacturer
-        self.manufacturer_buckets = {}
+        # Sort listings into a list for each manufacturer
+        self.listings_by_manufacturer = {}
 
         # Create a bucket for every manufacturer
         for i in range(0, len(self.manufacturers)):
-            self.manufacturer_buckets[self.manufacturers[i]] = []
+            self.listings_by_manufacturer[self.manufacturers[i]] = []
 
-        # Add each listing to a manufacturer bucket
+        # Add each listing to a manufacturer bucket if the manufacturer name is in the title or manufacturer section
         for i in range(0, len(listings)):
             for j in range(0, len(self.manufacturers)):
                 if self.manufacturers[j] in listings[i].manufacturer:
-                    self.manufacturer_buckets[self.manufacturers[j]].append(listings[i])
+                    self.listings_by_manufacturer[self.manufacturers[j]].append(listings[i])
 
                 elif self.manufacturers[j] in listings[i].title:
-                    self.manufacturer_buckets[self.manufacturers[j]].append(listings[i])
-                    # print('Man: {}\n{}'.format(self.manufacturers[j], listings[i]))
+                    self.listings_by_manufacturer[self.manufacturers[j]].append(listings[i])
 
-        print(self.manufacturer_buckets.keys())
+        self.products_by_manufacturer = {}
+
+        for product in products:
+            if product.manufacturer not in self.products_by_manufacturer.keys():
+                self.products_by_manufacturer[product.manufacturer] = []
+                self.products_by_manufacturer[product.manufacturer].append(product)
+            else:
+                self.products_by_manufacturer[product.manufacturer].append(product)
 
         # Create regex patterns to match manufacturers with whitespace in the name. ie. Ca sio
         self.manufacturers_whitespace_regex = []
         for manufacturer in self.manufacturers:
-            manufacturer.replace('canada', '')
             # Put a '0 or 1 spaces' regex in between every character in the manufacturer's name
             new_string = manufacturer.replace('', '\s?')[3: -3]
             self.manufacturers_whitespace_regex.append(new_string)
 
-        # for i in range(0, len(listings)):
-        #     for man in self.manufacturers_whitespace_regex:
-        #         search_obj = re.search(man, listings[i].title, re.IGNORECASE)
-        #         if search_obj:
-        #             if listings[i] not in self.manufacturer_buckets[man.replace('\\s?', '')]:
-        #                 self.manufacturer_buckets[man.replace('\\s?', '')].append(listings[i])
-
         self.make_matches(products, listings)
 
     def make_matches(self, products, listings):
+        # Counters
         no_manufacturer_match = 0
-        manufacturer_found_but_no_prod_match = 0
 
-        limit = 10
-        for i in range(2, 3):
-            product = products[i]
+        results = {}
+        for product in products:
+            results[product.original_name] = Result(product.original_name)
+
+        for i in range(0, len(listings)):
+            if i > 100 and i % 100 == 0:
+                print('Finished {} listings'.format(i))
+            listing = listings[i]
             manufacturer_found = False
+            likely_manufacturers = []
 
             # Fix manufacturer variation ie "canon canada" becomes "canon", and add manufacturer to likely manufacturers
             for manufacturer in self.manufacturers_whitespace_regex:
-                search_obj = re.search(manufacturer, product.manufacturer, re.IGNORECASE)
+                search_obj = re.search(manufacturer, '{}{}'.format(listing.manufacturer, listing.title), re.IGNORECASE)
                 if search_obj:
-                    product.manufacturer = manufacturer.replace('\\s?', '')
+                    likely_manufacturers.append(manufacturer.replace('\\s?', ''))
                     manufacturer_found = True
-                    break
+                    # print('Added to {}'.format(listing.manufacturer))
 
             if manufacturer_found is False:
-                print(product)
-                print('Manufacturer does not match\n')
+                # print('Manufacturer does not match: {}\n'.format(listing))
+                no_manufacturer_match += 1
                 continue
 
             five = []
             ten = []
             fifteen = []
-            twenty = []
 
-            print(product)
             final = None
-            for listing in self.manufacturer_buckets[product.manufacturer]:
-                points = 0
-                if product.manufacturer in listing.title:
-                    points += 5
-                if product.family is not None and product.family in listing.title:
-                    points += 5
-                if product.model in listing.title:
-                    # print('{}, {}'.format(product.model, listing.title))
-                    points += 10
 
-                if points == 5:
-                    five.append(listing)
-                elif points == 10:
-                    ten.append(listing)
-                elif points == 15:
-                    fifteen.append(listing)
-                elif points == 20:
-                    twenty.append(listing)
+            for manufacturer in likely_manufacturers:
+                # print(manufacturer)
+                for product in self.products_by_manufacturer[manufacturer]:
+                    points = 0
+                    if listing.manufacturer in product.manufacturer or product.manufacturer in listing.manufacturer:
+                        # print('Manufacturer match')
+                        points += 5
+                    if self.title_contains_model(product.model, listing.title):
+                        points += 5
+                    if product.family is not None and product.family in listing.title:
+                        # print('Family match')
+                        points += 5
+                    elif product.family is None:
+                        points += 5
 
-                curr_low = 1000000000
-                final = None
+                    if points == 10:
+                        ten.append(product)
+                    if points == 15:
+                        fifteen.append(product)
 
-                if len(twenty) == 0:
-                    for match in fifteen:
-                        if match.manufacturer != product.manufacturer:
-                            continue
-                        if float(match.price) < curr_low:
-                            final = match
-                            curr_low = float(match.price)
-                else:
-                    for match in twenty:
-                        if match.manufacturer != product.manufacturer:
-                            continue
-                        if float(match.price) < curr_low:
-                            final = match
-                            curr_low = float(match.price)
+            # print('Listing: {}'.format(listing))
+            # print('Fifteen: {}'.format(fifteen))
 
-            print('Five: {}\n'
-                  'Ten: {}\n'
-                  'Fifteen: {}\n'
-                  'Twenty: {}\n'.format(len(five), len(ten), len(fifteen), len(twenty)))
+            if fifteen is not None:
+                for product in fifteen:
+                    results[product.original_name].listings.append(listing)
+                    # print(results[product.original_name].to_json())
 
-            print(product)
-            # print(fifteen)
-            print(twenty)
-            print(final)
+        for result in results.values():
+            if result.listings is not None:
+                self.output_file.write(result.to_json())
+
+        print('No manufacturer match:', no_manufacturer_match)
 
 
-            # likely_matches = []
-            curr_max = 0
-            best_man = ''
-            best_man_index = 0
-
-            # for manufacturer in likely_manufacturers:
-            #     for j in range(0, len(self.manufacturer_buckets[manufacturer])):
-            #         product = self.manufacturer_buckets[manufacturer][j]
-            #         score = fuzz.ratio('{} {}'.format(product.manufacturer, product.model), listing.title)
-            #         curr_max = max(score, curr_max)
-            #         best_man = manufacturer
-            #         best_man_index = j
-            #
-            # print('Score: {}, Best Manufacturer: {}, Index: {}\n'
-            #       'Listing: {}\n'
-            #       'Match: {}\n\n'.format(curr_max,
-            #                              best_man,
-            #                              best_man_index,
-            #                              listing,
-            #                              self.manufacturer_buckets[best_man][best_man_index]))
-
-    def title_contains_model(self, title, model):
-        if title.__contains__(model):
+    @staticmethod
+    def title_contains_model(model, title):
+        model = model.replace('-', '')
+        model = model.replace(' ', '')
+        model = model.replace('_', '')
+        regex_model = model.replace('', '[-\ _]?')
+        search_obj = re.search(regex_model, title, re.IGNORECASE)
+        if search_obj:
             return True
-
-
+        return False
 
     @staticmethod
     def get_listings():

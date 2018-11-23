@@ -10,15 +10,12 @@ class Result:
                 listing = self.listings[i]
                 json_listings += listing.to_json()
                 json_listings += ','
-
             temp = self.listings[-1].to_json()
             json_listings += temp
 
-        val = '{\n' + \
-              '\"product_name\": \"{}\",\n\"listings\": [\n{}\n]'.format(self.product_name, json_listings)\
-              + '\n}\n\n'
+        val = '\"product_name\": \"{}\",\"listings\": [{}]'.format(self.product_name, json_listings)
 
-        return val
+        return '{' + val + '}\n'
 
     def __repr__(self):
         return "\nProduct Name: {}\nListings: {}".format(self.product_name, self.listings)

@@ -14,6 +14,7 @@ OUTPUT_FILE = '../json/results.txt'
 
 class Matcher:
     def __init__(self):
+        print('Performing initial value parse')
         # Open a file to write results to
         try:
             self.output_file = open(OUTPUT_FILE, 'w')
@@ -55,6 +56,7 @@ class Matcher:
         self.make_matches(products, listings)
 
     def make_matches(self, products, listings):
+        print('Generating matches')
         # Result object are stored in here to provide O(1) access for storing listings matching a product
         results = {}
         for product in products:

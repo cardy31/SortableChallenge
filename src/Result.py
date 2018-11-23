@@ -1,6 +1,3 @@
-import json
-
-
 class Result:
     def __init__(self, product_name):
         self.product_name = product_name
@@ -17,7 +14,9 @@ class Result:
             temp = self.listings[-1].to_json()
             json_listings += temp
 
-        val = '{\n' + '\"product_name\": \"{}\",\n\"listings\": [{}]'.format(self.product_name, json_listings) + '\n}'
+        val = '{\n' + \
+              '\"product_name\": \"{}\",\n\"listings\": [\n{}\n]'.format(self.product_name, json_listings)\
+              + '\n}\n\n'
 
         return val
 

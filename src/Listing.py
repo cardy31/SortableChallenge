@@ -1,10 +1,9 @@
-import json
-
 class Listing:
-    def __init__(self, original, title, manufacturer, currency, price):
-        self.original = original
-        self.title = title
-        self.manufacturer = manufacturer
+    def __init__(self, title, manufacturer, currency, price):
+        self.title_original = title
+        self.title = title.lower()
+        self.manufacturer_original = manufacturer
+        self.manufacturer = manufacturer.lower()
         self.currency = currency
         self.price = price
 
@@ -17,16 +16,11 @@ class Listing:
                "\nCurrency: " + repr(self.currency) + "\nPrice: " + repr(self.price) + "\n"
 
     def to_json(self):
-        data = {'title': self.title,
-                'manufacturer': self.manufacturer,
-                'currency': self.currency,
-                'price': self.price}
-
         return '{\n' + '\"title\": \"{}\",\n' \
                        '\"manufacturer\": \"{}\",\n' \
                        '\"currency\": \"{}\",\n' \
-                       '\"price\": \"{}\"'.format(self.title,
-                                                  self.manufacturer,
+                       '\"price\": \"{}\"'.format(self.title_original,
+                                                  self.manufacturer_original,
                                                   self.currency,
                                                   self.price)\
                + '\n}'

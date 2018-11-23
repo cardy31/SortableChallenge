@@ -122,7 +122,8 @@ class Matcher:
                 likely_manufacturers.append(manufacturer.replace('\\s?', ''))
         return likely_manufacturers
 
-    def substring_in_string_with_allowances(self, substring, string):
+    @staticmethod
+    def substring_in_string_with_allowances(substring, string):
         """
         Uses a regex to check if the substring is in the string. Allows for a few characters mixed in.
         For example, a substring of s5000 will match to 's 5000', 's_5000', 's-5-000', etc.

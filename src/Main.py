@@ -25,7 +25,6 @@ class Matcher:
             sys.exit()
 
         # Read listings and products
-        listings = self.get_listings()
         products = self.get_products()
 
         # Create a list of all product manufacturers
@@ -78,22 +77,10 @@ class Matcher:
             if len(likely_manufacturers) == 0:
                 continue
 
-            # The point system is a relic of me having tiers of matching. Turned out only the top tier
-            # was any good, so now there is a fun points system instead of what could really just be a bunch of ifs
             for manufacturer in likely_manufacturers:
                 found = False
                 for product in self.products_by_manufacturer[manufacturer]:
-                    points = 0
-                    if listing.manufacturer in product.manufacturer or product.manufacturer in listing.manufacturer:
-                        points += 5
-                    if self.substring_in_string_with_allowances(product.model, listing.title):
-                        points += 5
-                    if product.family is None:
-                        points += 5
-                    elif self.substring_in_string_with_allowances(product.family, listing.title):
-                        points += 5
-
-                    if points == 15:
+                    if self.product_matches_listing(product, listing):
                         found = True
                         results[product.original_name].listings.append(listing)
                         break
@@ -121,6 +108,23 @@ class Matcher:
             if search_obj:
                 likely_manufacturers.append(manufacturer.replace('\\s?', ''))
         return likely_manufacturers
+
+    def product_matches_listing(self, product, listing):
+        """
+        This method is just a lot of if statements that check for various string/regex matches in the listing
+        :param product: Product object
+        :param listing: Listing object
+        :return: Boolean
+        """
+        # Manufacturer check
+        if listing.manufacturer in product.manufacturer or product.manufacturer in listing.manufacturer:
+            # Model check
+            if self.substring_in_string_with_allowances(product.model, listing.title):
+                # Family check
+                if product.family is None or self.substring_in_string_with_allowances(product.family,
+                                                                                      listing.title):
+                    return True
+        return False
 
     @staticmethod
     def substring_in_string_with_allowances(substring, string):

@@ -56,12 +56,12 @@ class Matcher:
         self.make_matches(products, listings)
 
     def make_matches(self, products, listings):
-        print('Generating matches')
         # Result object are stored in here to provide O(1) access for storing listings matching a product
         results = {}
         for product in products:
             results[product.original_name] = Result(product.original_name)
 
+        print('Generating matches')
         for i in range(0, len(listings)):
             # Get the current listing
             listing = listings[i]
@@ -78,20 +78,28 @@ class Matcher:
             if len(likely_manufacturers) == 0:
                 continue
 
+            # The point system is a relic of me having tiers of matching. Turned out only the top tier
+            # was any good, so now there is a fun points system instead of what could really just be a bunch of ifs
             for manufacturer in likely_manufacturers:
+                found = False
                 for product in self.products_by_manufacturer[manufacturer]:
                     points = 0
                     if listing.manufacturer in product.manufacturer or product.manufacturer in listing.manufacturer:
                         points += 5
                     if self.title_contains_model(product.model, listing.title):
                         points += 5
-                    if product.family is not None and product.family in listing.title:
+                    if product.family is None:
                         points += 5
-                    elif product.family is None:
+                    elif product.family in listing.title:
                         points += 5
 
                     if points == 15:
+                        found = True
                         results[product.original_name].listings.append(listing)
+                        break
+                # If we've already found a match for a listing, we move onto the next listing
+                if found:
+                    break
 
         # Write results out to file
         for result in results.values():

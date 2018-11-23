@@ -52,22 +52,28 @@ class Matcher:
             new_string = manufacturer.replace('', '\s?')[3: -3]
             self.manufacturers_whitespace_regex.append(new_string)
 
-        self.make_matches(products, listings)
+        self.make_matches(products)
 
-    def make_matches(self, products, listings):
+    def make_matches(self, products):
         # Result object are stored in here to provide O(1) access for storing listings matching a product
         results = {}
+
         for product in products:
             results[product.original_name] = Result(product.original_name)
 
+        # Counter to update user on progress
+        count = 0
+
+        listings_file_pointer = self.get_listings_file_pointer()
+
         print('Generating matches')
-        for i in range(0, len(listings)):
+        for line in listings_file_pointer:
             # Get the current listing
-            listing = listings[i]
+            listing = self.create_listing(line)
 
             # Give user updates on completion
-            if i > 300 and i % 300 == 0:
-                val = int((i / len(listings)) * 100)
+            if count > 300 and count % 300 == 0:
+                val = int((count / 20196) * 100)
                 print('{}% Complete'.format(val))
 
             # Narrow down products by checking for manufacturer names in the listing's manufacturer and title fields
@@ -88,13 +94,15 @@ class Matcher:
                 if found:
                     break
 
+            count += 1
+
         # Write results out to file
         for result in results.values():
             if result.listings is not None:
                 self.output_file.write(result.to_json())
 
         print('100% Complete')
-        print('\nCheck <Project Folder>/json/results.txt for the results!')
+        print('\nCheck [project_directory]/json/results.txt for the results!')
 
     def find_likely_manufacturers(self, listing):
         """
@@ -146,21 +154,16 @@ class Matcher:
             return True
         return False
 
-    def get_listings(self):
-        """
-        :return: A list of Listing objects, one object per JSON listing
-        """
-        listings = []
+    @staticmethod
+    def get_listings_file_pointer():
         try:
-            for line in open(LISTING_JSON, 'r'):
-                listings.append(self.create_listing(line))
+            fp = open(LISTING_JSON, 'r')
         except FileNotFoundError:
             print('If you could make sure that that the paths at the top'
                   ' of Main.py are valid then that would be great!')
             print('Have a nice day! :)')
             sys.exit()
-
-        return listings
+        return fp
 
     @staticmethod
     def create_listing(listing_json):

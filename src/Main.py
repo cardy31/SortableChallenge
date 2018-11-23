@@ -2,9 +2,9 @@ import json
 import re
 import sys
 
-from src.Listing import Listing
-from src.Product import Product
-from src.Result import Result
+from Listing import Listing
+from Product import Product
+from Result import Result
 
 # Paths to JSON files
 LISTING_JSON = '../json/listings.txt'

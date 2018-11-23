@@ -86,11 +86,11 @@ class Matcher:
                     points = 0
                     if listing.manufacturer in product.manufacturer or product.manufacturer in listing.manufacturer:
                         points += 5
-                    if self.title_contains_model(product.model, listing.title):
+                    if self.substring_in_string_with_allowances(product.model, listing.title):
                         points += 5
                     if product.family is None:
                         points += 5
-                    elif product.family in listing.title:
+                    elif self.substring_in_string_with_allowances(product.family, listing.title):
                         points += 5
 
                     if points == 15:
@@ -122,22 +122,21 @@ class Matcher:
                 likely_manufacturers.append(manufacturer.replace('\\s?', ''))
         return likely_manufacturers
 
-    @staticmethod
-    def title_contains_model(model, title):
+    def substring_in_string_with_allowances(self, substring, string):
         """
-        Uses a regex to check if the model is in the title. Allows for a few characters mixed in.
-        For example, a model string of s5000 will match to 's 5000', 's_5000', 's-5-000', etc.
-        :param model: String. The model code to look for in the title.
-        :param title: String. The title to search for the model code
+        Uses a regex to check if the substring is in the string. Allows for a few characters mixed in.
+        For example, a substring of s5000 will match to 's 5000', 's_5000', 's-5-000', etc.
+        :param substring: The model code to look for in the title.
+        :param string: The title to search for the model code.
         :return:
         """
-        model = model.replace('-', '')
-        model = model.replace(' ', '')
-        model = model.replace('_', '')
-        regex_model = model.replace('', '[-\ _]?')
+        substring = substring.replace('-', '')
+        substring = substring.replace(' ', '')
+        substring = substring.replace('_', '')
+        regex_model = substring.replace('', '[-\ _]?')
         regex_model = regex_model[7:-7]
-        regex_model = '[^A-z,^0-9]' + regex_model + '[^A-z,^0-9]'
-        search_obj = re.search(regex_model, title, re.IGNORECASE)
+        regex_model = '[^A-z,^0-9]' + regex_model + '(hd)?[^A-z,^0-9]'
+        search_obj = re.search(regex_model, string, re.IGNORECASE)
         if search_obj:
             return True
         return False

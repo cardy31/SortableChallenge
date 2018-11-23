@@ -67,7 +67,7 @@ class Matcher:
             listing = listings[i]
 
             # Give user updates on completion
-            if i > 200 and i % 200 == 0:
+            if i > 300 and i % 300 == 0:
                 val = int((i / len(listings)) * 100)
                 print('{}% Complete'.format(val))
 
